@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>StarBound — Love Beyond Distance</title>
+<meta name="description" content="Real-time P2P couples games for long-distance relationships. No server required.">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --gold:#ffd700;--purple:#7c3aed;--pink:#db2777;--teal:#0d9488;
+  --glass:rgba(255,255,255,0.06);--glass-border:rgba(255,255,255,0.12);
+  --text:rgba(255,255,255,0.92);--muted:rgba(255,255,255,0.55);--dim:rgba(255,255,255,0.28);
+  --conn-ok:#4ade80;--conn-warn:#fbbf24;--conn-err:#f87171;
+}
+body{min-height:100vh;min-height:100dvh;background:#020b18;color:var(--text);font-family:'Crimson Text',serif;overflow-x:hidden;position:relative}
+@keyframes aurora{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes twinkle{0%{opacity:.1;transform:scale(1)}100%{opacity:.9;transform:scale(1.5)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+@keyframes glow{0%,100%{text-shadow:0 0 20px rgba(255,215,0,.5)}50%{text-shadow:0 0 60px rgba(255,215,0,.9),0 0 120px rgba(255,180,0,.4)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(139,92,246,.5)}70%{box-shadow:0 0 0 20px rgba(139,92,246,0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes heartbeat{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes reactionPop{0%{transform:scale(0) translateY(0);opacity:1}80%{transform:scale(1.3) translateY(-80px);opacity:.9}100%{transform:scale(1) translateY(-120px);opacity:0}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+#aurora-bg{position:fixed;inset:0;z-index:0;background:linear-gradient(135deg,#020b18,#0a0022,#010d1f,#050027,#020b18);background-size:400% 400%;animation:aurora 18s ease infinite;pointer-events:none}
+#stars{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--dur) ease-in-out var(--del) infinite alternate}
+.nebula{position:absolute;border-radius:50%;pointer-events:none}
+#app{position:relative;z-index:2;min-height:100vh;min-height:100dvh}
+.screen{display:none}
+.screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;padding:20px;animation:slideUp .45s ease}
+.card{background:rgba(255,255,255,.05);border:1px solid var(--glass-border);border-radius:20px;padding:24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.btn{padding:12px 24px;border-radius:14px;border:1px solid var(--glass-border);background:var(--glass);color:#fff;cursor:pointer;font-size:15px;font-family:'Cinzel',serif;letter-spacing:.5px;transition:all .22s;backdrop-filter:blur(8px);outline:none;touch-action:manipulation}
+.btn:hover{background:rgba(255,255,255,.14);transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.btn:active{transform:translateY(1px);box-shadow:none}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-primary{background:linear-gradient(135deg,rgba(139,92,246,.38),rgba(219,39,119,.38));border-color:rgba(139,92,246,.55)}
+.btn-gold{background:linear-gradient(135deg,rgba(255,215,0,.2),rgba(255,165,0,.2));border-color:rgba(255,215,0,.4);color:var(--gold)}
+.btn-danger{background:linear-gradient(135deg,rgba(239,68,68,.32),rgba(251,146,60,.28));border-color:rgba(239,68,68,.45)}
+.btn-success{background:linear-gradient(135deg,rgba(5,150,105,.32),rgba(16,185,129,.28));border-color:rgba(5,150,105,.45)}
+input,textarea{padding:12px 16px;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.07);color:#fff;font-size:16px;font-family:'Crimson Text',serif;outline:none;width:100%;transition:border-color .2s;-webkit-appearance:none}
+input:focus,textarea:focus{border-color:rgba(139,92,246,.7);background:rgba(255,255,255,.1)}
+input::placeholder,textarea::placeholder{color:var(--dim)}
+input[type="password"]{letter-spacing:2px}
+.logo{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(2.6rem,8vw,4.8rem);letter-spacing:6px;animation:glow 3s ease-in-out infinite;background:linear-gradient(135deg,#ffd700,#ffb347,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.tagline{color:rgba(255,215,0,.65);letter-spacing:4px;font-size:12px;text-transform:uppercase;margin-bottom:40px}
+.room-code{font-family:'Cinzel',serif;font-weight:700;font-size:clamp(28px,8vw,44px);letter-spacing:10px;color:var(--gold);background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.25);border-radius:18px;padding:18px 28px;animation:pulse 2.2s ease-in-out infinite;cursor:pointer;transition:background .2s;text-align:center}
+.room-code:hover{background:rgba(255,215,0,.14)}
+.player-dot{width:10px;height:10px;border-radius:50%;background:#4ade80;box-shadow:0 0 10px #4ade80;flex-shrink:0}
+.waiting-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.2);animation:blink 1.8s ease-in-out infinite;flex-shrink:0}
+.conn-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:100px;font-size:11px;letter-spacing:1px;font-family:'Cinzel',serif}
+.conn-badge.connected{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:#4ade80}
+.conn-badge.connecting{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24}
+.conn-badge.disconnected{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:#f87171}
+.conn-badge.reconnecting{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#c084fc}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.conn-dot.pulse{animation:blink .9s ease-in-out infinite}
+.quality-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:10px;font-family:'Cinzel',serif;letter-spacing:.5px;margin-left:8px}
+.quality-chip.excellent{background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
+.quality-chip.good{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
+.quality-chip.poor{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.25)}
+.game-card{background:rgba(255,255,255,.05);border:1px solid var(--glass-border);border-radius:22px;padding:24px;cursor:pointer;transition:all .28s;position:relative;overflow:hidden}
+.game-card::before{content:'';position:absolute;inset:0;background:var(--accent,rgba(255,255,255,.05));opacity:0;transition:opacity .28s;border-radius:22px}
+.game-card:hover{transform:translateY(-5px);box-shadow:0 16px 44px rgba(0,0,0,.45)}
+.game-card:hover::before{opacity:.07}
+.game-card:active{transform:translateY(-2px)}
+.gicon{font-size:36px;margin-bottom:12px;display:block;transition:transform .28s}
+.game-card:hover .gicon{transform:scale(1.15) rotate(-6deg)}
+.game-title{font-family:'Cinzel',serif;font-size:17px;margin-bottom:7px}
+.game-desc{color:var(--muted);font-size:13px;line-height:1.6}
+.ai-card{background:rgba(255,255,255,.05);border:1px solid var(--glass-border);border-radius:18px;padding:22px;animation:slideUp .4s ease}
+.ai-label{font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.ai-text{font-size:17px;line-height:1.85;font-style:italic}
+.story-msg{background:rgba(255,255,255,.05);border-radius:16px;padding:18px;margin-bottom:12px;animation:slideUp .3s ease}
+.story-msg.narrator{border-left:3px solid var(--pink)}
+.story-msg.player{border-left:3px solid var(--gold)}
+.loading-spinner{font-size:30px;animation:spin 1.8s linear infinite;display:inline-block}
+.err{color:#f87171;font-size:13px;text-align:center;margin-top:8px;min-height:18px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;width:100%}
+.partners-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:100px;padding:6px 16px;font-size:13px;color:rgba(255,215,0,.85);letter-spacing:1px;margin-bottom:10px;flex-wrap:wrap;justify-content:center}
+.category-pills{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:24px}
+.pill{padding:8px 16px;border-radius:100px;font-size:12px;cursor:pointer;transition:all .2s;font-family:'Cinzel',serif;letter-spacing:.5px;touch-action:manipulation}
+.pill:hover{transform:scale(1.06)}
+.pill:active{transform:scale(.97)}
+.timer-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:8px}
+.timer-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));transition:width .5s;border-radius:2px}
+#hearts-canvas{position:fixed;inset:0;pointer-events:none;z-index:100;opacity:0;transition:opacity .5s}
+.back-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-family:'Cinzel',serif;font-size:12px;letter-spacing:1px;padding:4px 0;margin-bottom:24px;text-align:left;touch-action:manipulation}
+.back-btn:hover{color:#fff}
+.game-screen-header{margin-bottom:28px}
+.gs-title{font-family:'Cinzel',serif;font-size:clamp(20px,4vw,28px);margin-bottom:5px}
+.gs-subtitle{color:var(--muted);font-style:italic;font-size:14px}
+.score-badge{display:inline-block;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:100px;padding:4px 14px;font-size:12px;color:var(--gold);margin-top:8px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
+.modal-overlay.visible{display:flex;animation:fadeIn .2s}
+.modal{background:#0d0d25;border:1px solid rgba(139,92,246,.4);border-radius:24px;padding:28px;max-width:420px;width:100%;animation:slideUp .3s ease;text-align:center}
+.divider{height:1px;background:var(--glass-border);margin:18px 0}
+.scroll-area{max-height:360px;overflow-y:auto;padding-right:4px}
+.scroll-area::-webkit-scrollbar{width:4px}
+.scroll-area::-webkit-scrollbar-track{background:rgba(255,255,255,.04);border-radius:2px}
+.scroll-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px}
+.api-key-section{margin-top:14px}
+.api-key-toggle{background:none;border:none;color:var(--dim);cursor:pointer;font-size:12px;font-family:'Crimson Text',serif;letter-spacing:1px;padding:4px 0;display:flex;align-items:center;gap:6px;width:100%;justify-content:center}
+.api-key-toggle:hover{color:var(--muted)}
+.api-key-body{display:none;margin-top:10px}
+.api-key-body.open{display:block;animation:slideUp .2s ease}
+.sync-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:rgba(74,222,128,.7);letter-spacing:1px;font-style:italic;margin-top:8px}
+.partner-typing{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 16px;font-style:italic;color:var(--muted);font-size:14px;animation:slideUp .3s ease}
+/* CHAT */
+#chat-toggle{position:fixed;bottom:20px;right:20px;z-index:300;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,rgba(139,92,246,.6),rgba(219,39,119,.6));border:1px solid rgba(255,255,255,.2);cursor:pointer;font-size:22px;display:none;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(139,92,246,.45);transition:transform .2s;touch-action:manipulation}
+#chat-toggle:hover{transform:scale(1.1)}
+#chat-toggle .unread{position:absolute;top:-2px;right:-2px;width:18px;height:18px;background:#f87171;border-radius:50%;font-size:10px;display:none;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff}
+#chat-drawer{position:fixed;bottom:84px;right:20px;width:min(320px,calc(100vw - 40px));background:#0d0d25;border:1px solid rgba(139,92,246,.4);border-radius:20px;z-index:299;display:none;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.6);overflow:hidden;max-height:60vh}
+#chat-drawer.open{display:flex;animation:slideUp .25s ease}
+#chat-header{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-family:'Cinzel',serif;font-size:13px;letter-spacing:1px;color:rgba(255,215,0,.85);display:flex;align-items:center;gap:8px}
+#chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;max-height:260px}
+#chat-msgs::-webkit-scrollbar{width:3px}
+#chat-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+.chat-bubble{padding:8px 12px;border-radius:12px;font-size:14px;line-height:1.5;max-width:85%;word-break:break-word}
+.chat-bubble.mine{align-self:flex-end;background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(219,39,119,.3));border:1px solid rgba(139,92,246,.3)}
+.chat-bubble.theirs{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+.chat-bubble .cbname{font-size:10px;color:var(--dim);margin-bottom:3px;font-family:'Cinzel',serif;letter-spacing:.5px}
+.chat-typing-ind{font-size:12px;color:var(--dim);font-style:italic;padding:4px 12px;display:none}
+#chat-input-row{padding:10px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px}
+#chat-input-row input{padding:9px 12px;font-size:14px;border-radius:10px}
+#chat-input-row button{padding:9px 14px;white-space:nowrap;border-radius:10px;font-size:14px}
+/* REACTIONS */
+#reaction-bar{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:298;display:none;gap:8px;background:rgba(13,13,37,.85);border:1px solid rgba(255,255,255,.12);padding:8px 16px;border-radius:100px;backdrop-filter:blur(12px)}
+#reaction-bar.visible{display:flex;animation:slideUp .25s ease}
+.rxn-btn{background:none;border:none;cursor:pointer;font-size:24px;padding:4px;transition:transform .15s;touch-action:manipulation}
+.rxn-btn:hover,.rxn-btn:active{transform:scale(1.35)}
+.rxn-pop{position:fixed;font-size:32px;pointer-events:none;z-index:500;animation:reactionPop .9s ease-out forwards}
+/* STATUS BAR */
+#status-bar{display:none;align-items:center;gap:8px;padding:6px 14px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.06);font-family:'Cinzel',serif;font-size:11px;position:fixed;top:0;left:0;right:0;z-index:200;backdrop-filter:blur(8px)}
+#status-bar.visible{display:flex}
+/* LOVE NOTES */
+.note-envelope{font-size:56px;cursor:pointer;transition:transform .25s;display:inline-block;filter:drop-shadow(0 0 14px rgba(255,215,0,.4))}
+.note-envelope:hover{transform:scale(1.1) rotate(-5deg)}
+.note-card{background:linear-gradient(135deg,rgba(255,215,0,.06),rgba(219,39,119,.06));border:1px solid rgba(255,215,0,.2);border-radius:20px;padding:24px;text-align:center;animation:slideUp .4s ease}
+/* AUDIO */
+#audio-btn{position:fixed;top:14px;right:14px;z-index:201;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;touch-action:manipulation}
+#audio-btn:hover{background:rgba(255,255,255,.15)}
+/* RESPONSIVE */
+@media(max-width:480px){
+  .screen.active{padding:14px}
+  .card{padding:18px}
+  .grid2{grid-template-columns:1fr}
+  .game-card{padding:18px}
+  .room-code{font-size:28px;letter-spacing:6px;padding:14px 18px}
+  .category-pills{gap:7px}
+  .pill{padding:7px 13px;font-size:11px}
+  #chat-drawer{bottom:80px;right:8px;left:8px;width:auto}
+  #chat-toggle{bottom:14px;right:14px}
+  #reaction-bar{bottom:80px;padding:6px 10px}
+  .rxn-btn{font-size:20px}
+}
+@media(max-width:360px){
+  .logo{font-size:2.2rem;letter-spacing:3px}
+}
+</style>
+</head>
+<body>
+<div id="aurora-bg"></div>
+<canvas id="hearts-canvas"></canvas>
+<div id="stars"></div>
+<button id="audio-btn" onclick="toggleAudio()" title="Toggle ambient audio">🔇</button>
+
+<!-- STATUS BAR -->
+<div id="status-bar">
+  <span id="sb-badge"></span>
+  <span id="sb-quality"></span>
+  <span style="flex:1"></span>
+  <span id="sb-room" style="color:var(--dim);font-size:10px"></span>
+</div>
+
+<!-- CHAT TOGGLE -->
+<button id="chat-toggle" onclick="toggleChat()">
+  💬<span class="unread" id="chat-unread">0</span>
+</button>
+
+<!-- CHAT DRAWER -->
+<div id="chat-drawer">
+  <div id="chat-header">💬 Live Chat <span id="chat-partner-name" style="color:var(--muted)"></span></div>
+  <div id="chat-msgs"></div>
+  <div class="chat-typing-ind" id="chat-typing-ind">Partner is typing…</div>
+  <div id="chat-input-row">
+    <input id="chat-input" type="text" placeholder="Say something sweet…" maxlength="220" onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="btn btn-primary" onclick="sendChat()">→</button>
+  </div>
+</div>
+
+<!-- REACTION BAR -->
+<div id="reaction-bar">
+  <button class="rxn-btn" onclick="sendReaction('❤️')">❤️</button>
+  <button class="rxn-btn" onclick="sendReaction('😂')">😂</button>
+  <button class="rxn-btn" onclick="sendReaction('😮')">😮</button>
+  <button class="rxn-btn" onclick="sendReaction('✨')">✨</button>
+  <button class="rxn-btn" onclick="sendReaction('🌶️')">🌶️</button>
+</div>
+
+<!-- DISCONNECT MODAL -->
+<div id="modal-disconnect" class="modal-overlay">
+  <div class="modal">
+    <p style="font-size:48px;margin-bottom:14px">💔</p>
+    <h3 style="font-family:'Cinzel',serif;font-size:20px;margin-bottom:10px">Connection Lost</h3>
+    <p style="color:var(--muted);font-style:italic;margin-bottom:8px;line-height:1.7" id="disc-msg">Your partner's connection was lost.</p>
+    <p style="color:#c084fc;font-size:13px;margin-bottom:20px" id="disc-retry-msg"></p>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="manualReconnect()">🔄 Try Reconnect</button>
+    <button class="btn btn-danger" style="width:100%" onclick="location.reload()">← Start Over</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a3e;border:1px solid rgba(255,215,0,.3);border-radius:100px;padding:10px 22px;font-size:13px;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:1px;z-index:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap"></div>
+
+<div id="app">
+
+<!-- LANDING -->
+<div id="screen-landing" class="screen active">
+  <div style="text-align:center;margin-bottom:6px;animation:float 4s ease-in-out infinite">
+    <span style="font-size:52px;filter:drop-shadow(0 0 24px rgba(255,215,0,.7))">✦</span>
+  </div>
+  <h1 class="logo">STARBOUND</h1>
+  <p class="tagline">A Journey Across the Distance</p>
+  <div class="card" style="width:100%;max-width:400px">
+    <p style="text-align:center;color:var(--muted);margin-bottom:20px;font-style:italic">Enter your name to begin</p>
+    <input id="name-input" type="text" placeholder="Your name, star traveler…" maxlength="24" autocomplete="off">
+    <p id="landing-err" class="err"></p>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button id="btn-create" class="btn btn-primary" style="flex:1" onclick="doCreate()">✦ Create Room</button>
+      <button class="btn" style="flex:1" onclick="showJoin()">✧ Join Room</button>
+    </div>
+    <div class="api-key-section">
+      <button class="api-key-toggle" onclick="toggleApiKey('landing')">
+        <span id="api-toggle-icon-landing">▸</span> Anthropic API Key <span style="font-size:10px;opacity:.6">(optional)</span>
+      </button>
+      <div id="api-key-body-landing" class="api-key-body">
+        <input id="api-key-landing" type="password" placeholder="sk-ant-…" style="font-size:13px;letter-spacing:1px">
+        <p style="font-size:11px;color:var(--dim);margin-top:6px;text-align:center">Only needed outside Claude.ai — offline fallbacks work without it</p>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:28px;text-align:center">
+    <p style="color:var(--dim);font-size:12px">✨ AI-powered · Real-time P2P · Works Mobile ↔ PC</p>
+    <p style="color:var(--dim);font-size:11px;margin-top:4px">No server required · End-to-end encrypted</p>
+  </div>
+</div>
+
+<!-- JOIN -->
+<div id="screen-join" class="screen">
+  <div class="card" style="width:100%;max-width:360px">
+    <button class="back-btn" onclick="goTo('landing')">← Back</button>
+    <h2 style="font-family:'Cinzel',serif;font-size:21px;text-align:center;margin-bottom:5px">Join Your Partner</h2>
+    <p style="color:var(--muted);text-align:center;font-style:italic;margin-bottom:22px">Enter the room code they shared</p>
+    <input id="join-name" type="text" placeholder="Your name…" maxlength="24" style="margin-bottom:10px" autocomplete="off">
+    <input id="join-code" type="text" placeholder="Room code (e.g. AB3X9Y)" maxlength="6" style="letter-spacing:6px;text-align:center;text-transform:uppercase;font-family:'Cinzel',serif;font-size:18px;margin-bottom:10px" oninput="this.value=this.value.toUpperCase()" autocomplete="off">
+    <p id="join-err" class="err"></p>
+    <button id="btn-join" class="btn btn-primary" style="width:100%;margin-top:6px;font-size:15px;padding:13px" onclick="doJoin()">🚀 Enter the Universe</button>
+    <div class="api-key-section">
+      <button class="api-key-toggle" onclick="toggleApiKey('join')">
+        <span id="api-toggle-icon-join">▸</span> Anthropic API Key <span style="font-size:10px;opacity:.6">(optional)</span>
+      </button>
+      <div id="api-key-body-join" class="api-key-body">
+        <input id="api-key-join" type="password" placeholder="sk-ant-…" style="font-size:13px;letter-spacing:1px">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="screen-lobby" class="screen">
+  <div class="card" style="width:100%;max-width:420px;text-align:center">
+    <h2 style="font-family:'Cinzel',serif;font-size:22px;margin-bottom:5px">Your Starship</h2>
+    <p style="color:var(--muted);font-style:italic;margin-bottom:20px">Share this code with your partner</p>
+    <div class="room-code" id="lobby-code" onclick="copyCode()" title="Click to copy">------</div>
+    <p style="font-size:11px;color:var(--dim);margin-top:7px;margin-bottom:4px">📋 Tap to copy · Works on any device</p>
+    <div style="margin:20px 0" id="lobby-players"></div>
+    <div id="conn-status" style="margin-bottom:14px"></div>
+    <div id="lobby-action"></div>
+  </div>
+</div>
+
+<!-- HUB -->
+<div id="screen-hub" class="screen">
+  <div style="width:100%;max-width:680px">
+    <div style="text-align:center;margin-bottom:36px">
+      <div id="conn-hub" style="margin-bottom:10px"></div>
+      <div class="partners-badge" id="hub-badge">✦ … &amp; … ✦</div>
+      <h1 style="font-family:'Cinzel',serif;font-size:clamp(1.7rem,4vw,2.6rem);margin-bottom:7px">Choose Your Adventure</h1>
+      <p style="color:var(--muted);font-style:italic">Select a game to play together</p>
+    </div>
+    <div class="grid2">
+      <div class="game-card" style="--accent:rgba(139,92,246,1);border-left:3px solid #7c3aed" onclick="startGame('deeptalk')">
+        <span class="gicon">💬</span><h3 class="game-title" style="color:#a78bfa">Deep Talk</h3>
+        <p class="game-desc">AI-crafted questions to truly know each other</p>
+      </div>
+      <div class="game-card" style="--accent:rgba(219,39,119,1);border-left:3px solid #db2777" onclick="startGame('story')">
+        <span class="gicon">📖</span><h3 class="game-title" style="color:#f472b6">Our Story</h3>
+        <p class="game-desc">Build a magical romantic adventure with AI as narrator</p>
+      </div>
+      <div class="game-card" style="--accent:rgba(217,119,6,1);border-left:3px solid #d97706" onclick="startGame('wyr')">
+        <span class="gicon">⚡</span><h3 class="game-title" style="color:#fbbf24">Would You Rather</h3>
+        <p class="game-desc">Couple-themed dilemmas that spark conversations</p>
+      </div>
+      <div class="game-card" style="--accent:rgba(5,150,105,1);border-left:3px solid #059669" onclick="startGame('dare')">
+        <span class="gicon">🎲</span><h3 class="game-title" style="color:#34d399">Truth &amp; Dare</h3>
+        <p class="game-desc">The classic reimagined for long-distance love</p>
+      </div>
+      <div class="game-card" style="--accent:rgba(255,215,0,1);border-left:3px solid #ffd700" onclick="startGame('notes')">
+        <span class="gicon">💌</span><h3 class="game-title" style="color:#ffd700">Love Notes</h3>
+        <p class="game-desc">Write secret notes your partner unlocks with a tap</p>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--dim);font-size:12px;margin-top:24px" id="hub-footer">Room: ------</p>
+  </div>
+</div>
+
+<!-- DEEP TALK -->
+<div id="screen-deeptalk" class="screen" style="justify-content:flex-start;padding-top:52px">
+  <div style="width:100%;max-width:600px">
+    <button class="back-btn" onclick="goHub()">← Back to Hub</button>
+    <div class="game-screen-header">
+      <h2 class="gs-title" style="color:#a78bfa">💬 Deep Talk</h2>
+      <p class="gs-subtitle">Either of you can generate — you'll both see it!</p>
+    </div>
+    <div class="category-pills">
+      <span class="pill" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#a78bfa" onclick="getDT('Fun &amp; Playful')">Fun &amp; Playful</span>
+      <span class="pill" style="background:rgba(219,39,119,.15);border:1px solid rgba(219,39,119,.3);color:#f472b6" onclick="getDT('Dreams &amp; Goals')">Dreams &amp; Goals</span>
+      <span class="pill" style="background:rgba(14,165,233,.15);border:1px solid rgba(14,165,233,.3);color:#38bdf8" onclick="getDT('Shared Memories')">Shared Memories</span>
+      <span class="pill" style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#fbbf24" onclick="getDT('Deep Feelings')">Deep Feelings</span>
+      <span class="pill" style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:#34d399" onclick="getDT('Our Future')">Our Future</span>
+    </div>
+    <div id="dt-content"></div>
+  </div>
+</div>
+
+<!-- OUR STORY -->
+<div id="screen-story" class="screen" style="justify-content:flex-start;padding-top:52px">
+  <div style="width:100%;max-width:620px">
+    <button class="back-btn" onclick="goHub()">← Back to Hub</button>
+    <div class="game-screen-header">
+      <h2 class="gs-title" style="color:#f472b6">📖 Our Story</h2>
+      <p class="gs-subtitle">Co-write a magical adventure together!</p>
+    </div>
+    <div id="story-messages" class="scroll-area" style="margin-bottom:14px"></div>
+    <div id="story-action"></div>
+  </div>
+</div>
+
+<!-- WOULD YOU RATHER -->
+<div id="screen-wyr" class="screen" style="justify-content:flex-start;padding-top:52px">
+  <div style="width:100%;max-width:600px">
+    <button class="back-btn" onclick="goHub()">← Back to Hub</button>
+    <div class="game-screen-header">
+      <h2 class="gs-title" style="color:#fbbf24">⚡ Would You Rather</h2>
+      <p class="gs-subtitle">Either of you can generate — you'll both see it!</p>
+    </div>
+    <button class="btn" style="width:100%;background:linear-gradient(135deg,rgba(217,119,6,.3),rgba(245,158,11,.3));border-color:rgba(217,119,6,.4);font-size:15px;padding:15px;margin-bottom:22px" onclick="getWYR()">⚡ Generate Scenario</button>
+    <div id="wyr-content"></div>
+  </div>
+</div>
+
+<!-- TRUTH & DARE -->
+<div id="screen-dare" class="screen" style="justify-content:flex-start;padding-top:52px">
+  <div style="width:100%;max-width:600px">
+    <button class="back-btn" onclick="goHub()">← Back to Hub</button>
+    <div class="game-screen-header">
+      <h2 class="gs-title" style="color:#34d399">🎲 Truth &amp; Dare</h2>
+      <p class="gs-subtitle">Draw a card — you'll both see it live!</p>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:26px">
+      <button class="btn btn-success" style="flex:1;font-size:15px;padding:15px" onclick="getTD('truth')">💬 Truth</button>
+      <button class="btn btn-danger" style="flex:1;font-size:15px;padding:15px" onclick="getTD('dare')">🎲 Dare</button>
+    </div>
+    <div id="dare-content"></div>
+  </div>
+</div>
+
+<!-- LOVE NOTES -->
+<div id="screen-notes" class="screen" style="justify-content:flex-start;padding-top:52px">
+  <div style="width:100%;max-width:560px">
+    <button class="back-btn" onclick="goHub()">← Back to Hub</button>
+    <div class="game-screen-header">
+      <h2 class="gs-title" style="color:#ffd700">💌 Love Notes</h2>
+      <p class="gs-subtitle">Write a secret note — your partner unlocks it</p>
+    </div>
+    <div id="notes-content"></div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ═══════════════════════════════════════════════════
+// STARS & VISUALS
+// ═══════════════════════════════════════════════════
+(function createStars(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<180;i++){
+    const d=document.createElement('div');d.className='star';
+    const x=(i*73+17)%100,y=(i*31+53)%100;
+    const s=((i*11)%15)/10+0.35;
+    const dur=((i*3)%30)/10+2,del=((i*7)%40)/10;
+    d.style.cssText=`left:${x}%;top:${y}%;width:${s}px;height:${s}px;--dur:${dur}s;--del:${del}s;${i%7===0?'background:#ffd700':''}`;
+    c.appendChild(d);
+  }
+  [{top:'5%',left:'2%',w:340,h:340,c:'rgba(139,92,246,.09)'},
+   {top:'58%',right:'4%',w:280,h:280,c:'rgba(219,39,119,.07)'},
+   {top:'28%',right:'22%',w:200,h:200,c:'rgba(14,165,233,.06)'},
+   {bottom:'8%',left:'18%',w:260,h:260,c:'rgba(255,215,0,.04)'}
+  ].forEach(n=>{
+    const d=document.createElement('div');d.className='nebula';
+    d.style.cssText=`${n.top?'top:'+n.top:'bottom:'+n.bottom};${n.left?'left:'+n.left:'right:'+n.right};width:${n.w}px;height:${n.h}px;background:radial-gradient(circle,${n.c} 0%,transparent 70%)`;
+    c.appendChild(d);
+  });
+})();
+
+function burstHearts(emoji='♥'){
+  const canvas=document.getElementById('hearts-canvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  canvas.style.opacity='1';
+  const items=Array.from({length:28},()=>({
+    x:Math.random()*canvas.width,y:canvas.height+20,
+    vx:(Math.random()-.5)*3.5,vy:-(Math.random()*4.5+3),
+    size:Math.random()*22+10,opacity:1,hue:Math.random()*60+300
+  }));
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    items.forEach(h=>{h.x+=h.vx;h.y+=h.vy;h.vy+=0.055;h.opacity-=0.013;
+      ctx.save();ctx.globalAlpha=Math.max(0,h.opacity);
+      ctx.fillStyle=`hsl(${h.hue},80%,65%)`;
+      ctx.font=`${h.size}px serif`;ctx.fillText(emoji,h.x,h.y);ctx.restore();
+    });
+    frame++;
+    if(frame<130)requestAnimationFrame(draw);
+    else{ctx.clearRect(0,0,canvas.width,canvas.height);canvas.style.opacity='0';}
+  }
+  requestAnimationFrame(draw);
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let state={playerName:'',roomCode:'',p1:'',p2:'',storyMsgs:[],currentGame:null};
+let apiKey='';
+let peer=null,conn=null,isHost=false;
+let storyGenerating=false;
+let reconnectAttempts=0,reconnectTimer=null,heartbeatTimer=null,pongTimer=null;
+let lastPingTime=0,latencyMs=0;
+let chatOpen=false,chatUnread=0;
+let notesSent=null,notesReceived=null;
+let audioCtx=null,audioNodes=[],audioOn=false;
+
+const MAX_RECONNECT=6;
+const PEER_PREFIX='sbnd2-';
+
+// ═══════════════════════════════════════════════════
+// AUDIO (Web Audio API ambient drone)
+// ═══════════════════════════════════════════════════
+function initAudio(){
+  if(audioCtx)return;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  const freqs=[55,82.4,110,164.8];
+  freqs.forEach(f=>{
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    const filter=audioCtx.createBiquadFilter();
+    osc.type='sine';osc.frequency.value=f;
+    filter.type='lowpass';filter.frequency.value=400;
+    gain.gain.value=0.018;
+    osc.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start();
+    audioNodes.push({osc,gain});
+  });
+}
+function toggleAudio(){
+  const btn=document.getElementById('audio-btn');
+  if(!audioOn){
+    initAudio();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    audioNodes.forEach(n=>n.gain.gain.setTargetAtTime(0.018,audioCtx.currentTime,.5));
+    audioOn=true;btn.textContent='🔊';
+  } else {
+    audioNodes.forEach(n=>n.gain.gain.setTargetAtTime(0,audioCtx.currentTime,.5));
+    audioOn=false;btn.textContent='🔇';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// API KEY
+// ═══════════════════════════════════════════════════
+function toggleApiKey(screen){
+  const body=document.getElementById('api-key-body-'+screen);
+  const icon=document.getElementById('api-toggle-icon-'+screen);
+  icon.textContent=body.classList.toggle('open')?'▾':'▸';
+}
+function getApiKey(){
+  return (document.getElementById('api-key-landing')?.value||
+          document.getElementById('api-key-join')?.value||'').trim();
+}
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById('screen-'+id);
+  if(el){el.classList.add('active');window.scrollTo(0,0);}
+  const inGame=!['landing','join','lobby'].includes(id);
+  document.getElementById('chat-toggle').style.display=inGame&&conn?'flex':'none';
+  document.getElementById('reaction-bar').classList.toggle('visible',inGame&&conn&&conn.open);
+  document.getElementById('status-bar').classList.toggle('visible',inGame&&conn);
+}
+function showJoin(){setErr('landing-err','');goTo('join');}
+function goHub(){goTo('hub');}
+
+// ═══════════════════════════════════════════════════
+// CONNECTION STATUS UI
+// ═══════════════════════════════════════════════════
+function setConnStatus(where,status,label){
+  const el=document.getElementById(where);if(!el)return;
+  const dotCls=status==='connected'?'':'pulse';
+  el.innerHTML=`<span class="conn-badge ${status}"><span class="conn-dot ${dotCls}"></span>${label}</span>`;
+}
+function qualityClass(ms){return ms===0?'':ms<120?'excellent':ms<280?'good':'poor';}
+function qualityLabel(ms){return ms===0?'':ms<120?'Excellent':ms<280?'Good':'Poor';}
+function updateStatusBar(){
+  const partner=isHost?state.p2:state.p1;
+  const isConn=conn&&conn.open;
+  document.getElementById('sb-badge').innerHTML=
+    `<span class="conn-badge ${isConn?'connected':'disconnected'}"><span class="conn-dot ${isConn?'':'pulse'}"></span>${isConn?partner+' connected':'Offline'}</span>`;
+  if(latencyMs>0){
+    const qc=qualityClass(latencyMs),ql=qualityLabel(latencyMs);
+    document.getElementById('sb-quality').innerHTML=
+      `<span class="quality-chip ${qc}">◉ ${ql} · ${latencyMs}ms</span>`;
+  }
+  document.getElementById('sb-room').textContent=`Room: ${state.roomCode}`;
+}
+function updateConnUI(){
+  const isConn=conn&&conn.open;const partner=isHost?state.p2:state.p1;
+  const label=isConn?`✦ ${partner} is here`:'Partner offline';
+  setConnStatus('conn-hub',isConn?'connected':'disconnected',label);
+  updateStatusBar();
+}
+
+// ═══════════════════════════════════════════════════
+// PEER CONFIG — STUN + TURN (Open Relay for NAT)
+// ═══════════════════════════════════════════════════
+function peerConfig(){
+  return {config:{iceServers:[
+    {urls:'stun:stun.l.google.com:19302'},
+    {urls:'stun:stun1.l.google.com:19302'},
+    {urls:'stun:stun2.l.google.com:19302'},
+    {urls:'stun:stun3.l.google.com:19302'},
+    {urls:'stun:stun4.l.google.com:19302'},
+    {urls:'stun:openrelay.metered.ca:80'},
+    {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turns:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'}
+  ],iceCandidatePoolSize:10}};
+}
+function genCode(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// HEARTBEAT (detect stale connection)
+// ═══════════════════════════════════════════════════
+function startHeartbeat(){
+  stopHeartbeat();
+  heartbeatTimer=setInterval(()=>{
+    if(!conn||!conn.open)return;
+    lastPingTime=Date.now();
+    send({type:'ping',t:lastPingTime});
+    pongTimer=setTimeout(()=>{
+      if(conn&&conn.open){conn.close();}
+    },9000);
+  },12000);
+}
+function stopHeartbeat(){
+  if(heartbeatTimer)clearInterval(heartbeatTimer);
+  if(pongTimer)clearTimeout(pongTimer);
+  heartbeatTimer=null;pongTimer=null;
+}
+
+// ═══════════════════════════════════════════════════
+// AUTO-RECONNECT
+// ═══════════════════════════════════════════════════
+function scheduleReconnect(){
+  if(reconnectAttempts>=MAX_RECONNECT){
+    document.getElementById('modal-disconnect').classList.add('visible');
+    document.getElementById('disc-retry-msg').textContent='Max reconnect attempts reached.';
+    return;
+  }
+  const delay=Math.min(1000*Math.pow(1.8,reconnectAttempts),20000);
+  reconnectAttempts++;
+  document.getElementById('disc-retry-msg').textContent=
+    `Reconnecting… attempt ${reconnectAttempts}/${MAX_RECONNECT} in ${Math.round(delay/1000)}s`;
+  setConnStatus('conn-hub','reconnecting',`Reconnecting (${reconnectAttempts}/${MAX_RECONNECT})…`);
+  updateStatusBar();
+  reconnectTimer=setTimeout(()=>{
+    if(isHost){hostReconnect();}else{joinerReconnect();}
+  },delay);
+}
+function manualReconnect(){
+  document.getElementById('modal-disconnect').classList.remove('visible');
+  reconnectAttempts=0;
+  scheduleReconnect();
+}
+function onConnLost(){
+  stopHeartbeat();
+  setConnStatus('conn-hub','disconnected','Reconnecting…');
+  document.getElementById('chat-toggle').style.display='none';
+  document.getElementById('reaction-bar').classList.remove('visible');
+  scheduleReconnect();
+}
+function hostReconnect(){
+  if(peer&&!peer.destroyed){
+    peer.on('connection',(c)=>{
+      if(conn){c.close();return;}
+      conn=c;setupConn();reconnectAttempts=0;
+      document.getElementById('modal-disconnect').classList.remove('visible');
+    });
+    setConnStatus('conn-hub','connecting','Waiting for partner to reconnect…');
+  } else {
+    // Rebuild peer with same code
+    try{peer=new Peer(PEER_PREFIX+state.roomCode,peerConfig());}catch(e){}
+    peer&&peer.on('connection',(c)=>{
+      conn=c;setupConn();reconnectAttempts=0;
+      document.getElementById('modal-disconnect').classList.remove('visible');
+    });
+  }
+}
+function joinerReconnect(){
+  try{
+    if(peer&&!peer.destroyed){
+      conn=peer.connect(PEER_PREFIX+state.roomCode,{reliable:true,serialization:'json'});
+      conn.on('open',()=>{reconnectAttempts=0;setupConn();send({type:'rejoin',name:state.playerName});document.getElementById('modal-disconnect').classList.remove('visible');});
+      conn.on('error',()=>scheduleReconnect());
+    }
+  }catch(e){scheduleReconnect();}
+}
+
+// ═══════════════════════════════════════════════════
+// SETUP CONNECTION
+// ═══════════════════════════════════════════════════
+function setupConn(){
+  conn.on('data',handleMsg);
+  conn.on('open',()=>{
+    startHeartbeat();
+    updateConnUI();
+    const inGame=!['screen-landing','screen-join','screen-lobby'].includes(
+      document.querySelector('.screen.active')?.id||'');
+    if(inGame){
+      document.getElementById('chat-toggle').style.display='flex';
+      document.getElementById('reaction-bar').classList.add('visible');
+      document.getElementById('status-bar').classList.add('visible');
+    }
+    document.getElementById('chat-partner-name').textContent=
+      `· ${isHost?state.p2:state.p1}`;
+  });
+  conn.on('close',()=>{conn=null;onConnLost();});
+  conn.on('error',()=>{conn=null;onConnLost();});
+}
+function send(msg){if(conn&&conn.open)conn.send(msg);}
+
+// ═══════════════════════════════════════════════════
+// CREATE ROOM (Host)
+// ═══════════════════════════════════════════════════
+async function doCreate(){
+  const n=document.getElementById('name-input').value.trim();
+  if(!n){setErr('landing-err','Please enter your name ✨');return;}
+  apiKey=getApiKey();state.playerName=n;state.p1=n;
+  const code=genCode();state.roomCode=code;isHost=true;
+  const btn=document.getElementById('btn-create');
+  btn.disabled=true;btn.textContent='⏳ Creating…';setErr('landing-err','');
+  try{peer=new Peer(PEER_PREFIX+code,peerConfig());}catch(e){
+    setErr('landing-err','PeerJS not loaded. Check your internet.');
+    btn.disabled=false;btn.textContent='✦ Create Room';return;
+  }
+  const timeout=setTimeout(()=>{
+    setErr('landing-err','Could not reach connection server. Check your internet.');
+    btn.disabled=false;btn.textContent='✦ Create Room';
+    if(peer){peer.destroy();peer=null;}
+  },18000);
+  peer.on('open',()=>{
+    clearTimeout(timeout);btn.disabled=false;btn.textContent='✦ Create Room';
+    renderLobby();goTo('lobby');
+    setConnStatus('conn-status','connecting','Waiting for partner…');
+  });
+  peer.on('connection',(c)=>{
+    if(conn){c.close();return;}conn=c;setupConn();
+  });
+  peer.on('error',(err)=>{
+    clearTimeout(timeout);btn.disabled=false;btn.textContent='✦ Create Room';
+    if(err.type==='unavailable-id'){peer.destroy();peer=null;isHost=false;doCreate();}
+    else{setErr('landing-err','Could not create room. Check internet connection!');if(peer){peer.destroy();peer=null;}}
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// JOIN ROOM (Partner)
+// ═══════════════════════════════════════════════════
+async function doJoin(){
+  const n=document.getElementById('join-name').value.trim();
+  const c=document.getElementById('join-code').value.trim().toUpperCase();
+  if(!n){setErr('join-err','Please enter your name ✨');return;}
+  if(c.length!==6){setErr('join-err','Room code must be 6 characters');return;}
+  apiKey=getApiKey();isHost=false;state.playerName=n;state.p2=n;state.roomCode=c;
+  const btn=document.getElementById('btn-join');
+  btn.disabled=true;btn.textContent='⏳ Connecting…';setErr('join-err','');
+  try{peer=new Peer(peerConfig());}catch(e){
+    setErr('join-err','PeerJS not loaded. Check internet.');
+    btn.disabled=false;btn.textContent='🚀 Enter the Universe';return;
+  }
+  let connectTimeout;
+  peer.on('open',()=>{
+    conn=peer.connect(PEER_PREFIX+c,{reliable:true,serialization:'json'});
+    connectTimeout=setTimeout(()=>{
+      setErr('join-err','⚠️ Room not found or host offline. Check the code!');
+      btn.disabled=false;btn.textContent='🚀 Enter the Universe';
+      if(peer){peer.destroy();peer=null;conn=null;}
+    },15000);
+    conn.on('open',()=>{
+      clearTimeout(connectTimeout);setupConn();
+      send({type:'join',name:n});
+      state.roomData={players:[state.p1,n]};
+      renderLobby();setConnStatus('conn-status','connecting','Connecting…');
+      goTo('lobby');btn.disabled=false;btn.textContent='🚀 Enter the Universe';
+    });
+    conn.on('error',()=>{
+      clearTimeout(connectTimeout);
+      setErr('join-err','Connection failed. Try again!');
+      btn.disabled=false;btn.textContent='🚀 Enter the Universe';
+    });
+  });
+  peer.on('error',(e)=>{
+    clearTimeout(connectTimeout);
+    setErr('join-err',e.type==='peer-unavailable'?'⚠️ Room not found. Check the code!':'Connection error. Check internet!');
+    btn.disabled=false;btn.textContent='🚀 Enter the Universe';
+    if(peer){peer.destroy();peer=null;}
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// MESSAGE HANDLER
+// ═══════════════════════════════════════════════════
+function handleMsg(msg){
+  switch(msg.type){
+    case 'ping': send({type:'pong',t:msg.t}); break;
+    case 'pong':
+      if(pongTimer){clearTimeout(pongTimer);pongTimer=null;}
+      latencyMs=Date.now()-msg.t;updateStatusBar(); break;
+    case 'join':
+      state.p2=msg.name;state.roomData={players:[state.p1,state.p2]};
+      renderLobby();setConnStatus('conn-status','connected',`${msg.name} connected ✓`);
+      send({type:'welcome',p1:state.p1,p2:msg.name}); break;
+    case 'rejoin':
+      state.p2=msg.name;updateConnUI();
+      send({type:'welcome',p1:state.p1,p2:msg.name}); break;
+    case 'welcome':
+      state.p1=msg.p1;state.p2=msg.p2;state.roomData={players:[msg.p1,msg.p2]};
+      renderLobby();setConnStatus('conn-status','connected','Connected ✓');
+      document.getElementById('lobby-action').innerHTML=
+        `<p style="color:var(--muted);font-style:italic;font-size:14px">💫 Waiting for ${msg.p1} to begin…</p>`; break;
+    case 'start_hub': state.p1=msg.p1;state.p2=msg.p2;enterHub(); break;
+    case 'partner_loading': showPartnerLoading(msg.game,msg.msg); break;
+    case 'ai_result': receiveAI(msg); break;
+    case 'story_start':
+      state.storyMsgs=[{role:'story',text:msg.text}];renderStory();showStoryInput(); break;
+    case 'story_action':
+      state.storyMsgs.push({role:'player',text:msg.text,by:msg.by});
+      renderStory();generateStoryContinuation(msg.text); break;
+    case 'story_result':
+      state.storyMsgs.push({role:'story',text:msg.text});renderStory();
+      storyGenerating=false;showStoryInput(); break;
+    case 'chat': receiveChatMsg(msg); break;
+    case 'chat_typing': showChatTyping(msg.on); break;
+    case 'reaction': showReaction(msg.emoji,false); break;
+    case 'note_send': receiveNote(msg.enc); break;
+    case 'note_open': renderNoteUnlocked(msg.text); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// LOBBY
+// ═══════════════════════════════════════════════════
+function renderLobby(){
+  const r=state.roomData||{players:[]};
+  document.getElementById('lobby-code').textContent=state.roomCode;
+  let html='';
+  (r.players||[]).forEach(p=>{
+    html+=`<div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:10px">
+      <div class="player-dot"></div>
+      <span style="font-size:16px">${p}${p===state.playerName?' (you)':' ✨'}</span></div>`;
+  });
+  if((r.players||[]).length<2){
+    html+=`<div style="display:flex;align-items:center;gap:10px;justify-content:center;color:var(--muted);margin-top:4px">
+      <div class="waiting-dot"></div><span style="font-style:italic;font-size:14px">Waiting for partner…</span></div>`;
+  }
+  document.getElementById('lobby-players').innerHTML=html;
+  const act=document.getElementById('lobby-action');
+  if((r.players||[]).length>=2&&isHost){
+    act.innerHTML=`<button class="btn btn-primary" style="width:100%;font-size:15px;padding:13px" onclick="hostBegin()">🚀 Begin the Journey!</button>`;
+  }
+}
+function hostBegin(){send({type:'start_hub',p1:state.p1,p2:state.p2});enterHub();}
+function copyCode(){
+  const code=state.roomCode;if(!code||code==='------')return;
+  navigator.clipboard.writeText(code).then(()=>showToast('✓ Room code copied!')).catch(()=>{
+    const el=document.createElement('textarea');el.value=code;
+    document.body.appendChild(el);el.select();document.execCommand('copy');
+    document.body.removeChild(el);showToast('✓ Room code copied!');
+  });
+}
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2500);
+}
+function enterHub(){
+  document.getElementById('hub-badge').textContent=`✦ ${state.p1} & ${state.p2} ✦`;
+  document.getElementById('hub-footer').textContent=`Room: ${state.roomCode}`;
+  updateConnUI();goTo('hub');
+}
+
+// ═══════════════════════════════════════════════════
+// GAMES — NAVIGATION
+// ═══════════════════════════════════════════════════
+function startGame(id){
+  state.currentGame=id;state.storyMsgs=[];storyGenerating=false;
+  clearContent(id);goTo(id);
+}
+function clearContent(id){
+  if(id==='deeptalk')document.getElementById('dt-content').innerHTML='';
+  if(id==='story'){
+    document.getElementById('story-messages').innerHTML='';
+    document.getElementById('story-action').innerHTML=
+      `<button class="btn btn-primary" style="width:100%;font-size:15px;padding:15px" onclick="startStory()">✨ Begin Our Story</button>`;
+  }
+  if(id==='wyr')document.getElementById('wyr-content').innerHTML='';
+  if(id==='dare')document.getElementById('dare-content').innerHTML='';
+  if(id==='notes')renderNotesScreen();
+}
+function showPartnerLoading(game,msg){
+  const ids={deeptalk:'dt-content',wyr:'wyr-content',dare:'dare-content'};
+  const el=document.getElementById(ids[game]);
+  if(el)el.innerHTML=`<div class="partner-typing">⌛ ${msg}</div>`;
+}
+function receiveAI(msg){
+  if(msg.game==='deeptalk')renderDT(msg.cat,msg.content,msg.offline);
+  if(msg.game==='wyr')renderWYR(msg.content,msg.offline);
+  if(msg.game==='td')renderTD(msg.tdType,msg.content,msg.offline);
+  burstHearts();
+}
+
+// ═══════════════════════════════════════════════════
+// CLAUDE API + FALLBACK QUESTIONS
+// ═══════════════════════════════════════════════════
+const FALLBACK={
+  deeptalk:{
+    'Fun & Playful':["If we could teleport anywhere right now, where would we go first?","What's the weirdest thing you do when nobody's watching?","If our relationship were a movie, what genre would it be?","What song instantly makes you think of me?","If you could give us a superpower to share, what would it be?","What's your funniest memory from when we first started talking?","If we swapped lives for a day, what's the first thing you'd do as me?","What emoji best describes our relationship?","If we were a food, what would we be?","What's one silly inside joke you're glad only we understand?"],
+    'Dreams & Goals':["Where do you see us five years from now?","What's one dream you've never told anyone but me?","If money weren't an obstacle, what would your ideal life look like?","What's one thing you want us to accomplish together?","What does your perfect day look like in full detail?","If you could master any skill overnight, what would it be?","What's a goal you gave up on that you secretly still want?","What adventure would you go on if you knew you couldn't fail?","What kind of home would we build if we could build any?","What's the one bucket-list thing you want to do before 30?"],
+    'Shared Memories':["What's your favorite memory of us together?","What was the moment you knew you really liked me?","What's a small thing I do that always makes you smile?","What's the first thing that comes to mind when you think of our first conversation?","What's a day from our relationship you'd want to relive?","What's something I did that surprised you in the best way?","What's a tradition we've started that you hope we keep forever?","What photo of us is your absolute favorite and why?","What song takes you back to us instantly?","What's a gift I gave you — even just a kind word — that meant a lot?"],
+    'Deep Feelings':["What do you love most about us as a couple?","What's your biggest fear about our relationship, and how can I help?","When do you feel most loved by me?","What do you wish I understood better about you?","In what moment did you feel the most connected to me?","What's one way I make your life better just by being in it?","What do you need most from me that I might not realize?","What's something you've been wanting to say but haven't found the right time?","How do you feel on the mornings after we talk all night?","What does home feel like to you — and am I part of that?"],
+    'Our Future':["What's one trip we absolutely have to take together?","How do you picture our morning routine when we're finally in the same place?","What kind of traditions do you want us to have as a couple?","What's something you want to teach me someday?","What's one thing you hope never changes between us?","What does forever look like to you?","What kind of people do you want us to become for each other?","Where would you most want us to settle down?","What's something you'd build or create for us?","What's the first thing you'll do when we're finally together in person?"]
+  },
+  wyr:[
+    "Would you rather go on a surprise trip together OR plan every detail of a dream vacation together?",
+    "Would you rather have a cooking night on video call OR watch the same movie simultaneously?",
+    "Would you rather receive 100 sweet texts a day OR one incredibly heartfelt letter a week?",
+    "Would you rather explore a new city for a weekend OR stay cozy indoors with no plans?",
+    "Would you rather know every thought I'm having OR share every dream I have each night?",
+    "Would you rather have us meet each other's families earlier OR wait until we're sure?",
+    "Would you rather speak different love languages OR disagree about where to live?",
+    "Would you rather have a personal chef cook for us OR a private concert by our favorite artist?",
+    "Would you rather always feel butterflies around me OR feel completely calm and safe?",
+    "Would you rather read all the same books OR watch all the same shows together?",
+    "Would you rather never fight with me OR always make up within an hour?",
+    "Would you rather go stargazing together OR sleep under the stars on a beach?"
+  ],
+  truth:[
+    "What's the first thing you noticed about me?",
+    "What do you find hardest about long distance?",
+    "What's a secret you've been keeping from me that's actually sweet?",
+    "When did you first realize you had real feelings for me?",
+    "What's one thing you'd change about yourself for us?",
+    "What's the most romantic thing you've ever imagined us doing?",
+    "What do you miss most about me between our calls?",
+    "What's one thing you're afraid to ask me?",
+    "What does love mean to you right now?",
+    "What's something I do that makes all the distance worth it?"
+  ],
+  dare:[
+    "Sing the first line of your favorite love song right now.",
+    "Draw a quick portrait of me in 60 seconds and share your screen.",
+    "Write and read a haiku about how you feel today.",
+    "Tell me three things you love about me without using the word 'love'.",
+    "Act out what you're doing right now in slow motion for 30 seconds.",
+    "Show me the last photo saved on your phone and explain it.",
+    "Text something sweet to a family member and show me their reply.",
+    "Do your best impression of how I sound when I laugh.",
+    "Write my name with your non-dominant hand and show me.",
+    "Tell me your most embarrassing story from the last month."
+  ]
+};
+
+async function askClaude(userMsg,system=''){
+  const key=apiKey||getApiKey();
+  const headers={'Content-Type':'application/json'};
+  if(key){
+    headers['x-api-key']=key;
+    headers['anthropic-version']='2023-06-01';
+    headers['anthropic-dangerous-direct-browser-access']='true';
+  }
+  const body={model:'claude-opus-4-5',max_tokens:800,messages:[{role:'user',content:userMsg}]};
+  if(system)body.system=system;
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(body)});
+  const d=await res.json();
+  if(d.error)throw new Error(d.error.message||'API error');
+  return d.content[0].text;
+}
+function fallbackDT(cat){
+  const arr=FALLBACK.deeptalk[cat]||FALLBACK.deeptalk['Deep Feelings'];
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+function fallbackWYR(){return FALLBACK.wyr[Math.floor(Math.random()*FALLBACK.wyr.length)];}
+function fallbackTruth(){return FALLBACK.truth[Math.floor(Math.random()*FALLBACK.truth.length)];}
+function fallbackDare(){return FALLBACK.dare[Math.floor(Math.random()*FALLBACK.dare.length)];}
+
+// ═══════════════════════════════════════════════════
+// GAME: DEEP TALK
+// ═══════════════════════════════════════════════════
+async function getDT(cat){
+  const el=document.getElementById('dt-content');
+  el.innerHTML=loadingHTML('💬','The stars are crafting a question…');
+  send({type:'partner_loading',game:'deeptalk',msg:`${state.playerName} is generating a ${cat} question…`});
+  let q,offline=false;
+  try{
+    if(!apiKey&&!getApiKey())throw new Error('no-key');
+    q=await askClaude(
+      `Generate exactly 1 thoughtful question for a long-distance couple. Category: "${cat}". Return ONLY the question — no preamble, no quotes.`,
+      'You are a relationship counselor specializing in long-distance couples. Create meaningful, emotionally resonant questions.'
+    );
+  }catch(e){q=fallbackDT(cat);offline=true;}
+  send({type:'ai_result',game:'deeptalk',cat,content:q,offline});
+  renderDT(cat,q,offline);burstHearts();
+}
+function renderDT(cat,q,offline){
+  if(!q)return;
+  const colors={'Fun & Playful':['#a78bfa','rgba(139,92,246,.3)'],'Dreams & Goals':['#f472b6','rgba(219,39,119,.3)'],
+    'Shared Memories':['#38bdf8','rgba(14,165,233,.3)'],'Deep Feelings':['#fbbf24','rgba(245,158,11,.3)'],'Our Future':['#34d399','rgba(5,150,105,.3)']};
+  const[tc,bc]=colors[cat]||['#a78bfa','rgba(139,92,246,.3)'];
+  const safeCat=cat.replace(/&/g,'&amp;');
+  document.getElementById('dt-content').innerHTML=`
+    <div class="ai-card" style="border-left:3px solid ${tc}">
+      <p class="ai-label" style="color:${tc}">✦ ${safeCat}</p>
+      <p class="ai-text">"${q.replace(/^["']|["']$/g,'')}"</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:18px">
+        <button class="btn" style="font-size:13px;padding:8px 16px;background:${bc}" onclick="getDT('${cat}')">Next Question →</button>
+        <span class="${offline?'':'sync-badge'}" style="${offline?'font-size:11px;color:#fbbf24':''}">
+          ${offline?'💾 Offline question':'✓ synced with partner'}</span>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// GAME: OUR STORY
+// ═══════════════════════════════════════════════════
+async function startStory(){
+  const el=document.getElementById('story-messages');
+  document.getElementById('story-action').innerHTML='';
+  el.innerHTML=loadingHTML('📖','Weaving your story…');storyGenerating=true;
+  try{
+    const p1=state.p1||'a starbound soul',p2=state.p2||'their beloved';
+    const txt=await askClaude(
+      `Start a short romantic adventure story for two people named ${p1} and ${p2} in a long-distance relationship. Set the scene in 3 magical sentences. End with a clear choice or question for them.`,
+      'You are a romantic fantasy storyteller creating an interactive adventure for a couple in love.'
+    );
+    send({type:'story_start',text:txt});
+    state.storyMsgs=[{role:'story',text:txt}];renderStory();storyGenerating=false;showStoryInput();
+  }catch(e){
+    el.innerHTML=`<p class="err">Story failed. ${e.message||'Try again!'}</p>`;
+    document.getElementById('story-action').innerHTML=`<button class="btn btn-primary" style="width:100%;font-size:15px;padding:15px" onclick="startStory()">✨ Try Again</button>`;
+    storyGenerating=false;
+  }
+}
+async function continueStory(){
+  const inp=document.getElementById('story-input');
+  const val=inp.value.trim();
+  if(!val||storyGenerating)return;
+  inp.value='';storyGenerating=true;
+  state.storyMsgs.push({role:'player',text:val,by:state.playerName});renderStory();
+  send({type:'story_action',text:val,by:state.playerName});
+  document.getElementById('story-action').innerHTML=loadingHTML('✨','Continuing your adventure…');
+  await generateStoryContinuation(val);
+}
+async function generateStoryContinuation(actionText){
+  const sa=document.getElementById('story-action');
+  if(sa)sa.innerHTML=loadingHTML('✨','Continuing your adventure…');
+  try{
+    const hist=state.storyMsgs.map(m=>`${m.role==='player'?'Player action':'Story'}: ${m.text}`).join('\n\n');
+    const next=await askClaude(
+      `Continue this interactive story:\n\n${hist}\n\nWrite the next 3 magical sentences based on the player's action. End with another choice.`,
+      'You are a romantic storyteller. Keep the story enchanting, sweet, and engaging.'
+    );
+    send({type:'story_result',text:next});
+    state.storyMsgs.push({role:'story',text:next});renderStory();
+    storyGenerating=false;showStoryInput();
+  }catch(e){
+    if(sa)sa.innerHTML=`<p class="err">${e.message||'Try again!'}</p>`;
+    storyGenerating=false;showStoryInput();
+  }
+}
+function renderStory(){
+  const el=document.getElementById('story-messages');if(!el)return;
+  el.innerHTML=state.storyMsgs.map(m=>`
+    <div class="story-msg ${m.role==='story'?'narrator':'player'}">
+      <p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:9px;color:${m.role==='story'?'#f472b6':'#ffd700'}">${m.role==='story'?'📖 Narrator':`✨ ${m.by||'Your choice'}`}</p>
+      <p style="line-height:1.8;${m.role==='story'?'font-style:italic':''}">${m.text}</p>
+    </div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+function showStoryInput(){
+  if(storyGenerating)return;
+  document.getElementById('story-action').innerHTML=`
+    <div style="display:flex;gap:10px">
+      <input id="story-input" type="text" placeholder="What do you do next?" onkeydown="if(event.key==='Enter')continueStory()" style="flex:1">
+      <button class="btn btn-primary" style="padding:11px 18px;white-space:nowrap" onclick="continueStory()">→</button>
+    </div>
+    <div class="sync-badge" style="margin-top:7px">✓ both of you can write the next action</div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// GAME: WOULD YOU RATHER
+// ═══════════════════════════════════════════════════
+async function getWYR(){
+  const el=document.getElementById('wyr-content');
+  el.innerHTML=loadingHTML('⚡','Generating your dilemma…');
+  send({type:'partner_loading',game:'wyr',msg:`${state.playerName} is generating a scenario…`});
+  let txt,offline=false;
+  try{
+    if(!apiKey&&!getApiKey())throw new Error('no-key');
+    txt=await askClaude(
+      `Generate one fun "Would You Rather" for a long-distance couple. Format:\nWould you rather [Option A]\nOR\n[Option B]\nReturn ONLY this.`,
+      'You create entertaining romantic "Would You Rather" questions for couples.'
+    );
+  }catch(e){txt=fallbackWYR();offline=true;}
+  send({type:'ai_result',game:'wyr',content:txt,offline});renderWYR(txt,offline);
+}
+function renderWYR(txt,offline){
+  const el=document.getElementById('wyr-content');if(!txt){el.innerHTML='';return;}
+  const parts=txt.split(/\bOR\b/i);
+  const a=(parts[0]||'').replace(/would you rather/i,'').trim();
+  const b=(parts[1]||txt).trim();
+  el.innerHTML=`
+    <div class="ai-card" style="border-left:3px solid #fbbf24;animation:slideUp .4s ease">
+      <p class="ai-label" style="color:#fbbf24">⚡ Your Dilemma</p>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin-bottom:18px">
+        <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:14px;padding:16px;text-align:center">
+          <p style="font-size:10px;color:#fbbf24;letter-spacing:2px;margin-bottom:7px">OPTION A</p>
+          <p style="font-style:italic;line-height:1.6;font-size:15px">Would you rather ${a}</p>
+        </div>
+        <div style="color:#fbbf24;font-family:'Cinzel',serif;font-size:12px;font-weight:700">OR</div>
+        <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:14px;padding:16px;text-align:center">
+          <p style="font-size:10px;color:#fbbf24;letter-spacing:2px;margin-bottom:7px">OPTION B</p>
+          <p style="font-style:italic;line-height:1.6;font-size:15px">${b}</p>
+        </div>
+      </div>
+      <p style="color:var(--dim);font-size:12px;font-style:italic;text-align:center;margin-bottom:14px">Discuss your choices — you might be surprised!</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn" style="flex:1;background:rgba(245,158,11,.2);border-color:rgba(245,158,11,.4)" onclick="getWYR()">⚡ New Scenario</button>
+        <span class="${offline?'':'sync-badge'}" style="${offline?'font-size:11px;color:#fbbf24':''}">
+          ${offline?'💾 Offline':'✓ synced'}</span>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// GAME: TRUTH & DARE
+// ═══════════════════════════════════════════════════
+async function getTD(type){
+  const el=document.getElementById('dare-content');
+  el.innerHTML=loadingHTML(type==='truth'?'💬':'🎲','The stars decide your fate…');
+  send({type:'partner_loading',game:'dare',msg:`${state.playerName} is drawing a ${type} card…`});
+  let txt,offline=false;
+  try{
+    if(!apiKey&&!getApiKey())throw new Error('no-key');
+    txt=await askClaude(
+      type==='truth'
+        ?'Generate 1 meaningful truth question for a long-distance couple. Return ONLY the question.'
+        :'Generate 1 fun dare for a long-distance couple doable over video call. Return ONLY the dare.',
+      'You create engaging truth or dare prompts for long-distance couples.'
+    );
+  }catch(e){txt=type==='truth'?fallbackTruth():fallbackDare();offline=true;}
+  send({type:'ai_result',game:'td',tdType:type,content:txt,offline});
+  renderTD(type,txt,offline);if(type==='dare')burstHearts();
+}
+function renderTD(type,txt,offline){
+  if(!txt)return;
+  const color=type==='truth'?'#34d399':'#f87171';
+  document.getElementById('dare-content').innerHTML=`
+    <div class="ai-card" style="border-left:3px solid ${color};animation:slideUp .4s ease">
+      <p class="ai-label" style="color:${color}">${type==='truth'?'💬 Truth':'🎲 Dare'}</p>
+      <p class="ai-text" style="font-size:18px">${txt}</p>
+      <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn" style="flex:1;background:rgba(5,150,105,.2);border-color:rgba(5,150,105,.35)" onclick="getTD('truth')">💬 New Truth</button>
+        <button class="btn" style="flex:1;background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.35)" onclick="getTD('dare')">🎲 New Dare</button>
+        <span class="${offline?'':'sync-badge'}" style="${offline?'font-size:11px;color:#fbbf24':''}">
+          ${offline?'💾 Offline':'✓'}</span>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// GAME: LOVE NOTES (XOR encrypt)
+// ═══════════════════════════════════════════════════
+function xorEnc(str,key){
+  return btoa(str.split('').map((c,i)=>
+    String.fromCharCode(c.charCodeAt(0)^key.charCodeAt(i%key.length))).join(''));
+}
+function xorDec(enc,key){
+  try{
+    return atob(enc).split('').map((c,i)=>
+      String.fromCharCode(c.charCodeAt(0)^key.charCodeAt(i%key.length))).join('');
+  }catch(e){return '❌ Could not decrypt note';}
+}
+const NOTE_KEY='starbound-love-key-2025';
+
+function renderNotesScreen(){
+  const el=document.getElementById('notes-content');
+  const partner=isHost?state.p2:state.p1;
+  if(notesReceived){
+    el.innerHTML=`
+      <div class="note-card" style="margin-bottom:18px">
+        <p style="font-size:12px;letter-spacing:2px;color:#ffd700;margin-bottom:12px">💌 NOTE FROM ${(partner||'PARTNER').toUpperCase()}</p>
+        <p style="font-style:italic;font-size:18px;line-height:1.9">"${notesReceived}"</p>
+      </div>
+      ${renderWriteNote()}`;
+  } else if(notesSent){
+    el.innerHTML=`
+      <div class="note-card" style="margin-bottom:18px">
+        <p style="color:var(--muted);font-style:italic">💌 Note sent! Waiting for ${partner||'partner'} to open it and reply…</p>
+      </div>
+      ${renderWriteNote()}`;
+  } else {
+    el.innerHTML=renderWriteNote();
+  }
+}
+function renderWriteNote(){
+  return `
+    <div style="text-align:center;margin-bottom:22px">
+      <span class="note-envelope" onclick="toggleNoteWrite()">💌</span>
+      <p style="color:var(--muted);margin-top:10px;font-style:italic">Tap the envelope to write your partner a secret note</p>
+    </div>
+    <div id="note-write" style="display:none;animation:slideUp .3s ease">
+      <textarea id="note-text" style="min-height:120px;resize:none;margin-bottom:12px" placeholder="Write something sweet from the heart…" maxlength="400"></textarea>
+      <button class="btn btn-gold" style="width:100%;font-size:15px;padding:13px" onclick="sendNote()">💌 Send Note</button>
+    </div>`;
+}
+function toggleNoteWrite(){
+  const d=document.getElementById('note-write');
+  if(d)d.style.display=d.style.display==='none'?'block':'none';
+}
+function sendNote(){
+  const txt=document.getElementById('note-text')?.value.trim();
+  if(!txt)return;
+  notesSent=txt;
+  const enc=xorEnc(txt,NOTE_KEY);
+  send({type:'note_send',enc});
+  showToast('💌 Note sent!');
+  renderNotesScreen();
+}
+function receiveNote(enc){
+  const txt=xorDec(enc,NOTE_KEY);notesReceived=txt;
+  if(state.currentGame==='notes')renderNotesScreen();
+  else showToast('💌 You have a secret note!');
+}
+function renderNoteUnlocked(text){
+  notesReceived=text;
+  if(state.currentGame==='notes')renderNotesScreen();
+}
+
+// ═══════════════════════════════════════════════════
+// CHAT SIDEBAR
+// ═══════════════════════════════════════════════════
+let typingTimeout=null;
+function toggleChat(){
+  chatOpen=!chatOpen;
+  document.getElementById('chat-drawer').classList.toggle('open',chatOpen);
+  if(chatOpen){chatUnread=0;updateChatBadge();document.getElementById('chat-input')?.focus();}
+}
+function updateChatBadge(){
+  const el=document.getElementById('chat-unread');
+  if(!el)return;
+  el.textContent=chatUnread;el.style.display=chatUnread>0?'flex':'none';
+}
+function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const val=inp.value.trim();
+  if(!val||!conn||!conn.open)return;
+  inp.value='';
+  send({type:'chat',name:state.playerName,text:val});
+  appendChatBubble(state.playerName,val,true);
+  send({type:'chat_typing',on:false});
+}
+function receiveChatMsg(msg){
+  appendChatBubble(msg.name,msg.text,false);
+  if(!chatOpen){chatUnread++;updateChatBadge();showToast(`💬 ${msg.name}: ${msg.text.substring(0,30)}`);}
+}
+function appendChatBubble(name,text,mine){
+  const el=document.getElementById('chat-msgs');if(!el)return;
+  const d=document.createElement('div');d.className=`chat-bubble ${mine?'mine':'theirs'}`;
+  d.innerHTML=`<div class="cbname">${name}</div>${text}`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+function showChatTyping(on){
+  const el=document.getElementById('chat-typing-ind');
+  if(el)el.style.display=on?'block':'none';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('chat-input')?.addEventListener('input',()=>{
+    send({type:'chat_typing',on:true});
+    clearTimeout(typingTimeout);
+    typingTimeout=setTimeout(()=>send({type:'chat_typing',on:false}),1500);
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// EMOJI REACTIONS
+// ═══════════════════════════════════════════════════
+function sendReaction(emoji){
+  send({type:'reaction',emoji});showReaction(emoji,true);
+}
+function showReaction(emoji,isMine){
+  const el=document.createElement('div');
+  el.className='rxn-pop';el.textContent=emoji;
+  el.style.left=Math.random()*70+15+'%';
+  el.style.top='60%';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),950);
+  if(isMine||emoji==='❤️')burstHearts(emoji);
+}
+
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+function loadingHTML(icon,msg){
+  return `<div class="ai-card" style="text-align:center;padding:36px">
+    <div class="loading-spinner">${icon}</div>
+    <p style="margin-top:12px;color:var(--muted);font-style:italic">${msg}</p>
+  </div>`;
+}
+function setErr(id,msg){const el=document.getElementById(id);if(el)el.textContent=msg;}
+
+// ═══════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS & INPUT EVENTS
+// ═══════════════════════════════════════════════════
+document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')doCreate();});
+document.getElementById('join-code').addEventListener('keydown',e=>{if(e.key==='Enter')doJoin();});
+document.getElementById('join-name').addEventListener('keydown',e=>{if(e.key==='Enter')doJoin();});
+document.getElementById('name-input').addEventListener('input',()=>setErr('landing-err',''));
+document.getElementById('join-name').addEventListener('input',()=>setErr('join-err',''));
+document.getElementById('join-code').addEventListener('input',()=>setErr('join-err',''));
+</script>
+</body>
+</html>
